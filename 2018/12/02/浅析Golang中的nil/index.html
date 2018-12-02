@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<!-- Head tag -->
+<head><meta name="generator" content="Hexo 3.8.0">
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="google-site-verification" content="xBT4GhYoi5qRD5tr338pgPM5OWHHIDR6mNg1a3euekI">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <meta name="keyword" content="">
+    <link rel="shortcut icon" href="/img/ironman-draw.png">
+    <!-- Place this tag in your head or just before your close body tag. -->
+    <script async defer src="https://buttons.github.io/buttons.js"></script>
+    <title>
+        
+          浅析Golang中的nil - Flipped | 怦然心动
+        
+    </title>
+
+    <link rel="canonical" href="http://codespace.online/2018/12/02/浅析Golang中的nil/">
+
+    <!-- Bootstrap Core CSS -->
+    <link rel="stylesheet" href="/css/bootstrap.min.css">
+
+    <!-- Custom CSS --> 
+    <link rel="stylesheet" href="/css/beantech.min.css">
+    
+    <!-- Pygments Highlight CSS -->
+    <link rel="stylesheet" href="/css/highlight.css">
+
+    <link rel="stylesheet" href="/css/widget.css">
+
+    <link rel="stylesheet" href="/css/rocket.css">
+
+    <link rel="stylesheet" href="/css/signature.css">
+
+    <link rel="stylesheet" href="/css/toc.css">
+
+    <!-- Custom Fonts -->
+    <!-- <link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css" rel="stylesheet" type="text/css"> -->
+    <!-- Hux change font-awesome CDN to qiniu -->
+    <link href="https://cdn.staticfile.org/font-awesome/4.5.0/css/font-awesome.min.css" rel="stylesheet" type="text/css">
+
+
+    <!-- Hux Delete, sad but pending in China
+    <link href='http://fonts.googleapis.com/css?family=Lora:400,700,400italic,700italic' rel='stylesheet' type='text/css'>
+    <link href='http://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800' rel='stylesheet' type='text/
+    css'>
+    -->
+
+
+    <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+        <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+        <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+    <![endif]-->
+
+    <!-- ga & ba script hoook -->
+    <script></script>
+</head>
+
+
+<!-- hack iOS CSS :active style -->
+<body ontouchstart="">
+	<!-- Modified by Yu-Hsuan Yen -->
+<!-- Post Header -->
+<style type="text/css">
+    header.intro-header{
+        
+            background-image: url('null')
+            /*post*/
+        
+    }
+    
+    #signature{
+        background-image: url('/img/signature/BeanTechSign-white.png');
+    }
+    
+</style>
+
+<header class="intro-header">
+    <!-- Signature -->
+    <div id="signature">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+                
+                    <div class="post-heading">
+                        <div class="tags">
+                            
+                        </div>
+                        <h1>浅析Golang中的nil</h1>
+                        <h2 class="subheading"></h2>
+                        <span class="meta">
+                            Posted by ChenYang-Zhao on
+                            2018-12-02
+                        </span>
+                    </div>
+                
+
+
+                </div>
+            </div>
+        </div>
+    </div>
+</header>
+
+	
+    <!-- Navigation -->
+<nav class="navbar navbar-default navbar-custom navbar-fixed-top">
+    <div class="container-fluid">
+        <!-- Brand and toggle get grouped for better mobile display -->
+        <div class="navbar-header page-scroll">
+            <button type="button" class="navbar-toggle">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            <a class="navbar-brand" href="/">Flipped</a>
+        </div>
+
+        <!-- Collect the nav links, forms, and other content for toggling -->
+        <!-- Known Issue, found by Hux:
+            <nav>'s height woule be hold on by its content.
+            so, when navbar scale out, the <nav> will cover tags.
+            also mask any touch event of tags, unfortunately.
+        -->
+        <div id="huxblog_navbar">
+            <div class="navbar-collapse">
+                <ul class="nav navbar-nav navbar-right">
+                    <li>
+                        <a href="/">Home</a>
+                    </li>
+
+                    
+
+                        
+                    
+
+                        
+                        <li>
+                            <a href="/archive/">文章列表</a>
+                        </li>
+                        
+                    
+
+                        
+                        <li>
+                            <a href="/about/">关于</a>
+                        </li>
+                        
+                    
+
+                        
+                        <li>
+                            <a href="/tags/">标签</a>
+                        </li>
+                        
+                    
+                    
+                </ul>
+            </div>
+        </div>
+        <!-- /.navbar-collapse -->
+    </div>
+    <!-- /.container -->
+</nav>
+<script>
+    // Drop Bootstarp low-performance Navbar
+    // Use customize navbar with high-quality material design animation
+    // in high-perf jank-free CSS3 implementation
+    var $body   = document.body;
+    var $toggle = document.querySelector('.navbar-toggle');
+    var $navbar = document.querySelector('#huxblog_navbar');
+    var $collapse = document.querySelector('.navbar-collapse');
+
+    $toggle.addEventListener('click', handleMagic)
+    function handleMagic(e){
+        if ($navbar.className.indexOf('in') > 0) {
+        // CLOSE
+            $navbar.className = " ";
+            // wait until animation end.
+            setTimeout(function(){
+                // prevent frequently toggle
+                if($navbar.className.indexOf('in') < 0) {
+                    $collapse.style.height = "0px"
+                }
+            },400)
+        }else{
+        // OPEN
+            $collapse.style.height = "auto"
+            $navbar.className += " in";
+        }
+    }
+</script>
+
+
+    <!-- Main Content -->
+    <!-- Modify by Yu-Hsuan Yen -->
+
+<!-- Post Content -->
+<article>
+    <div class="container">
+        <div class="row">
+
+            <!-- Post Container -->
+            <div class="
+                col-lg-8 col-lg-offset-2
+                col-md-10 col-md-offset-1
+                post-container">
+
+                <p><code>nil</code> 是Golang中非常重要的标识符，它可以用来标识多种类型的零值，许多goproer认为Golang中的nil和其它语言中的null或者Null一样，其实，Golang中的nil和其它语言中的null/Null还有很多不一样的地方，下面让我们来深入的了解一下Golang中的nil吧～</p>
+<h3><span id="nil是预定义的标识符">nil是预定义的标识符</span></h3>
+<p>使用nil不需要预先声明它；</p>
+<h3><span id="nil可以用来表示多种类型的零值zero-value">nil可以用来表示多种类型的零值（zero value）</span></h3>
+<p>Go 语言中，nil可以用来表示一下类型的零值：</p>
+<ul>
+<li>指针类型</li>
+<li>map类型</li>
+<li>切片类型（slice）</li>
+<li>方法类型（function）</li>
+<li>channel类型</li>
+<li>interface类型</li>
+</ul>
+<p>也就是说，Go 语言中，nil可以表示多种类型的多个值；</p>
+<h3><span id="nil没有默认类型">nil没有默认类型</span></h3>
+<p>Go 语言中，几乎所有值都有默认类型，true/false的默认类型是bool，itoa的默认类型是int；但是nil是个例外，它没有默认类型；，因为它可以表示多种类型的值；</p>
+<h3><span id="nil不是保留关键词">nil不是保留关键词</span></h3>
+<p>这个有点让人意外，nil的值可以被覆盖，看下面的例子：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> <span class="string">"fmt"</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="literal">nil</span> := <span class="number">123</span></span><br><span class="line">	fmt.Println(<span class="literal">nil</span>) <span class="comment">// 123</span></span><br><span class="line"></span><br><span class="line">	<span class="comment">// The following line will compile error, for</span></span><br><span class="line">	<span class="comment">// nil represents an int value now in this scope.</span></span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	var _ map[string]int = nil</span></span><br><span class="line"><span class="comment">	*/</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3><span id="nil的大小size随着它表示类型的不同可能会不同">nil的大小（size）随着它表示类型的不同，可能会不同</span></h3>
+<p>nil值的大小和与它相同类型的非nil值的size相同，所以当nil表示的值的类型不同时，它的size可能不同；具体看下面的例子：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> (</span><br><span class="line">	<span class="string">"fmt"</span></span><br><span class="line">	<span class="string">"unsafe"</span></span><br><span class="line">)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="keyword">var</span> p *<span class="keyword">struct</span>&#123;&#125; = <span class="literal">nil</span></span><br><span class="line">	fmt.Println( unsafe.Sizeof( p ) ) <span class="comment">// 8</span></span><br><span class="line"></span><br><span class="line">	<span class="keyword">var</span> s []<span class="keyword">int</span> = <span class="literal">nil</span></span><br><span class="line">	fmt.Println( unsafe.Sizeof( s ) ) <span class="comment">// 24</span></span><br><span class="line"></span><br><span class="line">	<span class="keyword">var</span> m <span class="keyword">map</span>[<span class="keyword">int</span>]<span class="keyword">bool</span> = <span class="literal">nil</span></span><br><span class="line">	fmt.Println( unsafe.Sizeof( m ) ) <span class="comment">// 8</span></span><br><span class="line"></span><br><span class="line">	<span class="keyword">var</span> c <span class="keyword">chan</span> <span class="keyword">string</span> = <span class="literal">nil</span></span><br><span class="line">	fmt.Println( unsafe.Sizeof( c ) ) <span class="comment">// 8</span></span><br><span class="line"></span><br><span class="line">	<span class="keyword">var</span> f <span class="function"><span class="keyword">func</span><span class="params">()</span> = <span class="title">nil</span></span></span><br><span class="line"><span class="function">	<span class="title">fmt</span>.<span class="title">Println</span><span class="params">( unsafe.Sizeof( f )</span> ) // 8</span></span><br><span class="line"><span class="function"></span></span><br><span class="line"><span class="function">	<span class="title">var</span> <span class="title">i</span> <span class="title">interface</span></span>&#123;&#125; = <span class="literal">nil</span></span><br><span class="line">	fmt.Println( unsafe.Sizeof( i ) ) <span class="comment">// 16</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>For the standard Go compiler, the sizes of two nil values of different types of the same kind are always the same. For example, two nil values of two different slice types, []int and []string, are the same.</p>
+</blockquote>
+<h3><span id="不同类型的nil值是不能相互比较的">不同类型的nil值是不能相互比较的</span></h3>
+<p>看下面的例子：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// Following lines don't compile.</span></span><br><span class="line"><span class="keyword">var</span> _ = (*<span class="keyword">int</span>)(<span class="literal">nil</span>) == (*<span class="keyword">bool</span>)(<span class="literal">nil</span>)         <span class="comment">// error: mismatched types.</span></span><br><span class="line"><span class="keyword">var</span> _ = (<span class="keyword">chan</span> <span class="keyword">int</span>)(<span class="literal">nil</span>) == (<span class="keyword">chan</span> <span class="keyword">bool</span>)(<span class="literal">nil</span>) <span class="comment">// error: mismatched types.</span></span><br></pre></td></tr></table></figure>
+<p>下面例子中的互相比较是OK的</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">type</span> IntPtr *<span class="keyword">int</span></span><br><span class="line"><span class="comment">// The underlying of type IntPtr is *int.</span></span><br><span class="line"><span class="keyword">var</span> _ = IntPtr(<span class="literal">nil</span>) == (*<span class="keyword">int</span>)(<span class="literal">nil</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment">// Every type in Go implements interface&#123;&#125; type.</span></span><br><span class="line"><span class="keyword">var</span> _ = (<span class="keyword">interface</span>&#123;&#125;)(<span class="literal">nil</span>) == (*<span class="keyword">int</span>)(<span class="literal">nil</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment">// Values of a directional channel type can be converted to the</span></span><br><span class="line"><span class="comment">// bidirectional channel type which has the same element type.</span></span><br><span class="line"><span class="keyword">var</span> _ = (<span class="keyword">chan</span> <span class="keyword">int</span>)(<span class="literal">nil</span>) == (<span class="keyword">chan</span>&lt;- <span class="keyword">int</span>)(<span class="literal">nil</span>)</span><br><span class="line"><span class="keyword">var</span> _ = (<span class="keyword">chan</span> <span class="keyword">int</span>)(<span class="literal">nil</span>) == (&lt;-<span class="keyword">chan</span> <span class="keyword">int</span>)(<span class="literal">nil</span>)</span><br></pre></td></tr></table></figure>
+<h3><span id="相同类型的nil值也可能是不能互相比较的">相同类型的nil值也可能是不能互相比较的</span></h3>
+<p>Go语言中，map/slice/function类型的值是不能相互比较的，它们的nil值也不例外，下面的例子都是非法的：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// The following lines fail to compile.</span></span><br><span class="line"><span class="keyword">var</span> _ = ([]<span class="keyword">int</span>)(<span class="literal">nil</span>) == ([]<span class="keyword">int</span>)(<span class="literal">nil</span>)</span><br><span class="line"><span class="keyword">var</span> _ = (<span class="keyword">map</span>[<span class="keyword">string</span>]<span class="keyword">int</span>)(<span class="literal">nil</span>) == (<span class="keyword">map</span>[<span class="keyword">string</span>]<span class="keyword">int</span>)(<span class="literal">nil</span>)</span><br><span class="line"><span class="keyword">var</span> _ = (<span class="function"><span class="keyword">func</span><span class="params">()</span>)<span class="params">(<span class="literal">nil</span>)</span> == <span class="params">(<span class="keyword">func</span>()</span>)<span class="params">(<span class="literal">nil</span>)</span></span></span><br></pre></td></tr></table></figure>
+<p>但是这些类型的值都可以和单独的nil值进行比较：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// The following lines compile okay.</span></span><br><span class="line"><span class="keyword">var</span> _ = ([]<span class="keyword">int</span>)(<span class="literal">nil</span>) == <span class="literal">nil</span></span><br><span class="line"><span class="keyword">var</span> _ = (<span class="keyword">map</span>[<span class="keyword">string</span>]<span class="keyword">int</span>)(<span class="literal">nil</span>) == <span class="literal">nil</span></span><br><span class="line"><span class="keyword">var</span> _ = (<span class="function"><span class="keyword">func</span><span class="params">()</span>)<span class="params">(<span class="literal">nil</span>)</span> == <span class="title">nil</span></span></span><br></pre></td></tr></table></figure>
+<h3><span id="两个nil值可能不会相等">两个nil值可能不会相等</span></h3>
+<p>如果两个nil值一个是<code>interface{}</code>类型的，另一个不是，假设它们可以相互比较，那么它们相互比较的结果永远为false；比如：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">fmt.Println( (<span class="keyword">interface</span>&#123;&#125;)(<span class="literal">nil</span>) == (*<span class="keyword">int</span>)(<span class="literal">nil</span>) ) <span class="comment">// false</span></span><br></pre></td></tr></table></figure>
+<p>原因是：当ineterface的nil值和非interface的nil值进行相等比较时，非interface的nil值会被转换成interface类型的nil值，转换过后的值是一个有确定动态类型的nil值（原类型），而原来的interface类型的nil值不具有任何确定的动态类型，所以相等比较的结果永远是false；</p>
+<h3><span id="从值为nil的map中获取值不会panic">从值为nil的map中获取值不会panic</span></h3>
+<p>而是获得值类型的零值，如例子所示：</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">fmt.Println( (<span class="keyword">map</span>[<span class="keyword">string</span>]<span class="keyword">int</span>)(<span class="literal">nil</span>)[<span class="string">"key"</span>] ) <span class="comment">// 0</span></span><br><span class="line">fmt.Println( (<span class="keyword">map</span>[<span class="keyword">int</span>]<span class="keyword">bool</span>)(<span class="literal">nil</span>)[<span class="number">123</span>] )     <span class="comment">// false</span></span><br><span class="line">fmt.Println( (<span class="keyword">map</span>[<span class="keyword">int</span>]*<span class="keyword">int64</span>)(<span class="literal">nil</span>)[<span class="number">123</span>] )   <span class="comment">// &lt;nil&gt;</span></span><br></pre></td></tr></table></figure>
+<h3><span id="通过range遍历值为nil的channelmapslices数组指针-是合法的">通过range遍历值为nil的channel/map/slices/数组指针 是合法的</span></h3>
+<p>遍历值为nil的slice和map时的循环次数是0<br>
+遍历值为nil的数组指针时的循环次数是数组类型的定义长度<br>
+range遍历值为nil的channel将会永远阻塞</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">for</span> <span class="keyword">range</span> []<span class="keyword">int</span>(<span class="literal">nil</span>) &#123;</span><br><span class="line">	fmt.Println(<span class="string">"Hello"</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">for</span> <span class="keyword">range</span> <span class="keyword">map</span>[<span class="keyword">string</span>]<span class="keyword">string</span>(<span class="literal">nil</span>) &#123;</span><br><span class="line">	fmt.Println(<span class="string">"world"</span>)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">for</span> i := <span class="keyword">range</span> (*[<span class="number">5</span>]<span class="keyword">int</span>)(<span class="literal">nil</span>) &#123;</span><br><span class="line">	fmt.Println(i)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">for</span> <span class="keyword">range</span> <span class="keyword">chan</span> <span class="keyword">bool</span>(<span class="literal">nil</span>) &#123; <span class="comment">// block here</span></span><br><span class="line">	fmt.Println(<span class="string">"Bye"</span>)</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3><span id="调用非interface类型的nil值对像的方法不会panic">调用非interface类型的nil值对像的方法不会panic</span></h3>
+<p>直接看例子</p>
+<figure class="highlight go"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> main</span><br><span class="line"></span><br><span class="line"><span class="keyword">type</span> Slice []<span class="keyword">bool</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s Slice)</span> <span class="title">Length</span><span class="params">()</span> <span class="title">int</span></span> &#123;</span><br><span class="line">	<span class="keyword">return</span> <span class="built_in">len</span>(s)</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(s Slice)</span> <span class="title">Modify</span><span class="params">(i <span class="keyword">int</span>, x <span class="keyword">bool</span>)</span></span> &#123;</span><br><span class="line">	s[i] = x <span class="comment">// panic if s is nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(p *Slice)</span> <span class="title">DoNothing</span><span class="params">()</span></span> &#123;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="params">(p *Slice)</span> <span class="title">Append</span><span class="params">(x <span class="keyword">bool</span>)</span></span> &#123;</span><br><span class="line">	*p = <span class="built_in">append</span>(*p, x) <span class="comment">// panic if p is nil</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</span><br><span class="line">	<span class="comment">// The following selectors will not cause panics.</span></span><br><span class="line">	_ = ((Slice)(<span class="literal">nil</span>)).Length</span><br><span class="line">	_ = ((Slice)(<span class="literal">nil</span>)).Modify</span><br><span class="line">	_ = ((*Slice)(<span class="literal">nil</span>)).DoNothing</span><br><span class="line">	_ = ((*Slice)(<span class="literal">nil</span>)).Append</span><br><span class="line"></span><br><span class="line">	<span class="comment">// The following two lines will also not panic.</span></span><br><span class="line">	_ = ((Slice)(<span class="literal">nil</span>)).Length()</span><br><span class="line">	((*Slice)(<span class="literal">nil</span>)).DoNothing()</span><br><span class="line"></span><br><span class="line">	<span class="comment">// The following two lines will panic. But panics will</span></span><br><span class="line">	<span class="comment">// not be triggered at the time of invoking the methods.</span></span><br><span class="line">	<span class="comment">// It will be triggered in the method bodies.</span></span><br><span class="line">	<span class="comment">/*</span></span><br><span class="line"><span class="comment">	((Slice)(nil)).Modify(0, true)</span></span><br><span class="line"><span class="comment">	((*Slice)(nil)).Append(true)</span></span><br><span class="line"><span class="comment">	*/</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+                
+
+                <hr>
+                <!-- Pager -->
+                <ul class="pager">
+                    
+                    
+                        <li class="next">
+                            <a href="/2018/11/05/select-语句的秘密/" data-toggle="tooltip" data-placement="top" title="select 语句的秘密">Next Post &rarr;</a>
+                        </li>
+                    
+                </ul>
+
+                <!-- duoshuo Share start -->
+                
+                <!-- 多说 Share end-->
+
+                <!-- 多说评论框 start -->
+                
+                <!-- 多说评论框 end -->
+
+                <!-- disqus comment start -->
+                
+                <!-- disqus comment end -->
+            </div>
+            
+            <!-- Tabe of Content -->
+            <!-- Table of Contents -->
+
+    
+      <aside id="sidebar">
+        <div id="toc" class="toc-article">
+        <strong class="toc-title">Contents</strong>
+        
+          <ol class="toc-nav"><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#undefined"><span class="toc-nav-number">1.</span> <span class="toc-nav-text">nil是预定义的标识符</span></a></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#undefined"><span class="toc-nav-number">2.</span> <span class="toc-nav-text">nil可以用来表示多种类型的零值（zero value）</span></a></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#undefined"><span class="toc-nav-number">3.</span> <span class="toc-nav-text">nil没有默认类型</span></a></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#undefined"><span class="toc-nav-number">4.</span> <span class="toc-nav-text">nil不是保留关键词</span></a></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#undefined"><span class="toc-nav-number">5.</span> <span class="toc-nav-text">nil的大小（size）随着它表示类型的不同，可能会不同</span></a></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#undefined"><span class="toc-nav-number">6.</span> <span class="toc-nav-text">不同类型的nil值是不能相互比较的</span></a></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#undefined"><span class="toc-nav-number">7.</span> <span class="toc-nav-text">相同类型的nil值也可能是不能互相比较的</span></a></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#undefined"><span class="toc-nav-number">8.</span> <span class="toc-nav-text">两个nil值可能不会相等</span></a></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#undefined"><span class="toc-nav-number">9.</span> <span class="toc-nav-text">从值为nil的map中获取值不会panic</span></a></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#undefined"><span class="toc-nav-number">10.</span> <span class="toc-nav-text">通过range遍历值为nil的channel/map/slices/数组指针 是合法的</span></a></li><li class="toc-nav-item toc-nav-level-3"><a class="toc-nav-link" href="#undefined"><span class="toc-nav-number">11.</span> <span class="toc-nav-text">调用非interface类型的nil值对像的方法不会panic</span></a></li></ol>
+        
+        </div>
+      </aside>
+    
+
+                
+            <!-- Sidebar Container -->
+            <div class="
+                col-lg-8 col-lg-offset-2
+                col-md-10 col-md-offset-1
+                sidebar-container">
+
+                <!-- Featured Tags -->
+                
+                <section>
+                    <!-- no hr -->
+                    <h5><a href="/tags/">FEATURED TAGS</a></h5>
+                    <div class="tags">
+                       
+                    </div>
+                </section>
+                
+
+                <!-- Friends Blog -->
+                
+                <hr>
+                <h5>FRIENDS</h5>
+                <ul class="list-inline">
+
+                    
+                        <li><a href="http://beantech.org" target="_blank">Bean Tech</a></li>
+                    
+                        <li><a href="http://blog.kaijun.rocks" target="_blank">Kaijun&#39;s Blog</a></li>
+                    
+                        <li><a href="http://huangxuan.me" target="_blank">Hux Blog</a></li>
+                    
+                        <li><a href="#" target="_blank">It Helps SEO</a></li>
+                    
+                </ul>
+                
+            </div>
+        </div>
+    </div>
+</article>
+
+
+
+
+
+
+
+<!-- async load function -->
+<script>
+    function async(u, c) {
+      var d = document, t = 'script',
+          o = d.createElement(t),
+          s = d.getElementsByTagName(t)[0];
+      o.src = u;
+      if (c) { o.addEventListener('load', function (e) { c(null, e); }, false); }
+      s.parentNode.insertBefore(o, s);
+    }
+</script>
+<!-- anchor-js, Doc:http://bryanbraun.github.io/anchorjs/ -->
+<script>
+    async("https://cdn.bootcss.com/anchor-js/1.1.1/anchor.min.js",function(){
+        anchors.options = {
+          visible: 'hover',
+          placement: 'left',
+          icon: 'ℬ'
+        };
+        anchors.add().remove('.intro-header h1').remove('.subheading').remove('.sidebar-container h5');
+    })
+</script>
+<style>
+    /* place left on bigger screen */
+    @media all and (min-width: 800px) {
+        .anchorjs-link{
+            position: absolute;
+            left: -0.75em;
+            font-size: 1.1em;
+            margin-top : -0.1em;
+        }
+    }
+</style>
+
+
+
+    <!-- Footer -->
+    <!-- Footer -->
+<footer>
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+                <ul class="list-inline text-center">
+                
+                
+                
+
+                
+
+                
+
+                
+                    <li>
+                        <a target="_blank" href="https://github.com/ChenYang-Zhao">
+                            <span class="fa-stack fa-lg">
+                                <i class="fa fa-circle fa-stack-2x"></i>
+                                <i class="fa fa-github fa-stack-1x fa-inverse"></i>
+                            </span>
+                        </a>
+                    </li>
+                
+
+                
+
+                </ul>
+                <p class="copyright text-muted">
+                    Copyright &copy; ChenYang-Zhao 2018 
+                    <br>
+                    Theme by <a href="http://huangxuan.me">Hux</a> 
+                    <span style="display: inline-block; margin: 0 5px;">
+                        <i class="fa fa-heart"></i>
+                    </span> 
+                    re-Ported by <a href="http://beantech.org">BeanTech</a> | 
+                    <iframe style="margin-left: 2px; margin-bottom:-5px;" frameborder="0" scrolling="0" width="91px" height="20px" src="https://ghbtns.com/github-btn.html?user=YenYuHsuan&repo=hexo-theme-beantech&type=star&count=true">
+                    </iframe>
+                </p>
+            </div>
+        </div>
+    </div>
+</footer>
+
+<!-- jQuery -->
+<script src="/js/jquery.min.js"></script>
+
+<!-- Bootstrap Core JavaScript -->
+<script src="/js/bootstrap.min.js"></script>
+
+<!-- Custom Theme JavaScript -->
+<script src="/js/hux-blog.min.js"></script>
+
+
+<!-- async load function -->
+<script>
+    function async(u, c) {
+      var d = document, t = 'script',
+          o = d.createElement(t),
+          s = d.getElementsByTagName(t)[0];
+      o.src = u;
+      if (c) { o.addEventListener('load', function (e) { c(null, e); }, false); }
+      s.parentNode.insertBefore(o, s);
+    }
+</script>
+
+<!-- 
+     Because of the native support for backtick-style fenced code blocks 
+     right within the Markdown is landed in Github Pages, 
+     From V1.6, There is no need for Highlight.js, 
+     so Huxblog drops it officially.
+
+     - https://github.com/blog/2100-github-pages-now-faster-and-simpler-with-jekyll-3-0  
+     - https://help.github.com/articles/creating-and-highlighting-code-blocks/    
+-->
+<!--
+    <script>
+        async("http://cdn.bootcss.com/highlight.js/8.6/highlight.min.js", function(){
+            hljs.initHighlightingOnLoad();
+        })
+    </script>
+    <link href="http://cdn.bootcss.com/highlight.js/8.6/styles/github.min.css" rel="stylesheet">
+-->
+
+
+<!-- jquery.tagcloud.js -->
+<script>
+    // only load tagcloud.js in tag.html
+    if($('#tag_cloud').length !== 0){
+        async("http://codespace.online/js/jquery.tagcloud.js",function(){
+            $.fn.tagcloud.defaults = {
+                //size: {start: 1, end: 1, unit: 'em'},
+                color: {start: '#bbbbee', end: '#0085a1'},
+            };
+            $('#tag_cloud a').tagcloud();
+        })
+    }
+</script>
+
+<!--fastClick.js -->
+<script>
+    async("https://cdn.bootcss.com/fastclick/1.0.6/fastclick.min.js", function(){
+        var $nav = document.querySelector("nav");
+        if($nav) FastClick.attach($nav);
+    })
+</script>
+
+
+<!-- Google Analytics -->
+
+
+
+
+<!-- Baidu Tongji -->
+
+
+
+
+
+
+	<a id="rocket" href="#top" class=""></a>
+	<script type="text/javascript" src="/js/totop.js?v=1.0.0" async=""></script>
+    <script type="text/javascript" src="/js/toc.js?v=1.0.0" async=""></script>
+<!-- Image to hack wechat -->
+<img src="http://codespace.online/img/icon_wechat.png" width="0" height="0" />
+<!-- Migrate from head to bottom, no longer block render and still work -->
+
+</body>
+
+</html>
